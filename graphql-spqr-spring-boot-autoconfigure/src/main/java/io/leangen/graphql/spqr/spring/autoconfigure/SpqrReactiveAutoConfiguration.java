@@ -1,15 +1,16 @@
 package io.leangen.graphql.spqr.spring.autoconfigure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 import io.leangen.graphql.module.Module;
 import io.leangen.graphql.spqr.spring.autoconfigure.reactive.FluxAdapter;
 import io.leangen.graphql.spqr.spring.autoconfigure.reactive.MonoAdapter;
 import io.leangen.graphql.spqr.spring.web.GraphQLController;
-import io.leangen.graphql.spqr.spring.web.reactive.GraphQLReactiveExecutor;
 import io.leangen.graphql.spqr.spring.web.GuiController;
-import io.leangen.graphql.spqr.spring.web.reactive.DefaultGraphQLExecutor;
 import io.leangen.graphql.spqr.spring.web.reactive.DefaultGraphQLController;
+import io.leangen.graphql.spqr.spring.web.reactive.DefaultGraphQLExecutor;
+import io.leangen.graphql.spqr.spring.web.reactive.GraphQLReactiveExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -53,8 +54,8 @@ public class SpqrReactiveAutoConfiguration {
     @ConditionalOnProperty(name = "graphql.spqr.http.enabled", havingValue = "true", matchIfMissing = true)
     @ConditionalOnMissingBean(GraphQLController.class)
     @ConditionalOnBean(GraphQLSchema.class)
-    public DefaultGraphQLController graphQLController(GraphQL graphQL, GraphQLReactiveExecutor executor) {
-        return new DefaultGraphQLController(graphQL, executor);
+    public DefaultGraphQLController graphQLController(GraphQL graphQL, GraphQLReactiveExecutor executor, ObjectMapper objectMapper) {
+        return new DefaultGraphQLController(graphQL, executor, objectMapper);
     }
 
     @Bean

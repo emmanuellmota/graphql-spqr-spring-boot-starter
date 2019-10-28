@@ -1,29 +1,27 @@
 package io.leangen.graphql.spqr.spring.web;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import io.leangen.graphql.spqr.spring.web.dto.GraphQLRequest;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public abstract class GraphQLController<R> {
 
     protected final GraphQL graphQL;
     protected final GraphQLExecutor<R> executor;
+    private ObjectMapper objectMapper;
 
-    public GraphQLController(GraphQL graphQL, GraphQLExecutor<R> executor) {
+    public GraphQLController(GraphQL graphQL, GraphQLExecutor<R> executor, ObjectMapper objectMapper) {
         this.graphQL = graphQL;
         this.executor = executor;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping(
@@ -33,11 +31,14 @@ public abstract class GraphQLController<R> {
     )
     @ResponseBody
     public Object executeJsonPost(@RequestBody GraphQLRequest requestBody,
-                                GraphQLRequest requestParams,
-                                R request) {
-        String query = requestParams.getQuery() == null ? requestBody.getQuery() : requestParams.getQuery();
-        String operationName = requestParams.getOperationName() == null ? requestBody.getOperationName() : requestParams.getOperationName();
-        Map<String, Object> variables = requestParams.getVariables() == null ? requestBody.getVariables() : requestParams.getVariables();
+                                  @RequestParam(value = "query", required = false) String requestQuery,
+                                  @RequestParam(value = "operationName", required = false) String requestOperationName,
+                                  @RequestParam(value = "variables", required = false) String variablesJsonString,
+                                  R request) throws IOException {
+        String query = requestQuery == null ? requestBody.getQuery() : requestQuery;
+        String operationName = requestOperationName == null ? requestBody.getOperationName() : requestOperationName;
+        //noinspection unchecked
+        Map<String, Object> variables = variablesJsonString == null ? requestBody.getVariables() : objectMapper.readValue(variablesJsonString, Map.class);
 
         return executor.execute(graphQL, new GraphQLRequest(query, operationName, variables), request);
     }
@@ -80,7 +81,12 @@ public abstract class GraphQLController<R> {
             headers = "Connection!=Upgrade"
     )
     @ResponseBody
-    public Object executeGet(GraphQLRequest graphQLRequest, R request) {
-        return executor.execute(graphQL, graphQLRequest, request);
+    public Object executeGet(@RequestParam(value = "query") String requestQuery,
+                             @RequestParam(value = "operationName", required = false) String requestOperationName,
+                             @RequestParam(value = "variables", required = false) String variablesJsonString,
+                             R request) throws IOException {
+        //noinspection unchecked
+        Map<String, Object> variables = variablesJsonString == null ? Collections.emptyMap() : objectMapper.readValue(variablesJsonString, Map.class);
+        return executor.execute(graphQL, new GraphQLRequest(requestQuery, requestOperationName, variables), request);
     }
 }

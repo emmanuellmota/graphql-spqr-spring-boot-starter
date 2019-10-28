@@ -1,7 +1,11 @@
 package io.leangen.graphql.spqr.spring.test;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+
 import io.leangen.graphql.ExtensionProvider;
 import io.leangen.graphql.GeneratorConfiguration;
+import io.leangen.graphql.annotations.GraphQLArgument;
 import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.metadata.strategy.query.BeanResolverBuilder;
 import io.leangen.graphql.metadata.strategy.query.PublicResolverBuilder;
@@ -13,9 +17,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
+import org.springframework.web.multipart.MultipartFile;
 
 @Configuration
 public class ResolverBuilder_TestConfig {
@@ -41,10 +43,15 @@ public class ResolverBuilder_TestConfig {
 
     @Component("annotatedOperationSourceBean")
     @GraphQLApi
-    private static class AnnotatedOperationSourceBean {
+    public static class AnnotatedOperationSourceBean {
         @GraphQLQuery(name = "greetingFromAnnotatedSource_wiredAsComponent")
         public String getGreeting(){
             return "Hello world !";
+        }
+
+        @GraphQLQuery(name = "echo")
+        public String echo(@GraphQLArgument(name = "content") String content) {
+            return content;
         }
     }
 
