@@ -1,9 +1,17 @@
 package io.leangen.graphql.spqr.spring.web;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import io.leangen.graphql.spqr.spring.web.dto.GraphQLRequest;
+import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.DataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,9 +22,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 public abstract class GraphQLController<R> {
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     protected final GraphQL graphQL;
     protected final GraphQLExecutor<R> executor;
@@ -81,6 +93,37 @@ public abstract class GraphQLController<R> {
     )
     @ResponseBody
     public Object executeGet(GraphQLRequest graphQLRequest, R request) {
+        return executor.execute(graphQL, graphQLRequest, request);
+    }
+
+    @PostMapping(
+            value = "${graphql.spqr.http.endpoint:/graphql}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_UTF8_VALUE
+    )
+    public Object executeMultipartFileUpload(
+            @RequestParam("operations") String requestString,
+            @RequestParam("map") String mappingString,
+            @RequestParam Map<String, MultipartFile> multipartFiles,
+            R request) throws IOException {
+        GraphQLRequest graphQLRequest = objectMapper.readValue(requestString, GraphQLRequest.class);
+        //noinspection unchecked
+        Map<String, List<String>> fileMappings = objectMapper.readValue(mappingString, Map.class);
+
+        Map<String, Object> values = new LinkedHashMap<>();
+        fileMappings.forEach((fileKey, variables) -> {
+            for (String variable : variables) {
+                String[] parts = variable.split("\\.");
+                String path = parts[0] + Arrays.stream(parts).skip(1).collect(Collectors.joining("][", "[", "]"));
+                values.put(path,  multipartFiles.get(fileKey));
+            }
+        });
+
+        DataBinder binder = new DataBinder(graphQLRequest, "operations");
+        binder.setIgnoreUnknownFields(false);
+        binder.setIgnoreInvalidFields(false);
+        binder.bind(new MutablePropertyValues(values));
+
         return executor.execute(graphQL, graphQLRequest, request);
     }
 }
