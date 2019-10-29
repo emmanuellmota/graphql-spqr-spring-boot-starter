@@ -16,6 +16,7 @@ public class SpqrProperties {
     private String[] basePackages;
     private boolean abstractInputTypeResolution;
     private Relay relay = new Relay();
+    private MultipartUpload multipartUpload = new MultipartUpload();
 
     // Web properties
     private Http http = new Http();
@@ -88,7 +89,15 @@ public class SpqrProperties {
         this.gui = gui;
     }
 
-    public class Relay {
+    public MultipartUpload getMultipartUpload() {
+        return multipartUpload;
+    }
+
+    public void setMultipartUpload(MultipartUpload multipartUpload) {
+        this.multipartUpload = multipartUpload;
+    }
+
+    public static class Relay {
 
         private boolean enabled;
         private String mutationWrapper;
@@ -128,7 +137,7 @@ public class SpqrProperties {
         }
     }
 
-    public class Http {
+    public static class Http {
 
         private boolean enabled = true;
         private String endpoint = DEFAULT_ENDPOINT;
@@ -150,7 +159,7 @@ public class SpqrProperties {
         }
     }
 
-    public class WebSocket {
+    public static class WebSocket {
 
         private boolean enabled = true;
         private String endpoint;
@@ -212,7 +221,7 @@ public class SpqrProperties {
         }
     }
 
-    public class Gui {
+    public static class Gui {
 
         private boolean enabled = true;
         private String endpoint = DEFAULT_GUI_ENDPOINT;
@@ -258,6 +267,22 @@ public class SpqrProperties {
 
         public void setPageTitle(String pageTitle) {
             this.pageTitle = pageTitle;
+        }
+    }
+
+    public static class MultipartUpload {
+
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * @param enabled if enabled a multipart file upload will be activated
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }
