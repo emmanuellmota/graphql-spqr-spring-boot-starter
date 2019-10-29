@@ -1,5 +1,9 @@
 package io.leangen.graphql.spqr.spring.autoconfigure;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedType;
+import java.util.*;
+
 import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 import io.leangen.geantyref.GenericTypeReflector;
@@ -8,11 +12,7 @@ import io.leangen.graphql.ExtensionProvider;
 import io.leangen.graphql.GeneratorConfiguration;
 import io.leangen.graphql.GraphQLSchemaGenerator;
 import io.leangen.graphql.execution.ResolverInterceptorFactory;
-import io.leangen.graphql.generator.mapping.ArgumentInjector;
-import io.leangen.graphql.generator.mapping.InputConverter;
-import io.leangen.graphql.generator.mapping.OutputConverter;
-import io.leangen.graphql.generator.mapping.SchemaTransformer;
-import io.leangen.graphql.generator.mapping.TypeMapper;
+import io.leangen.graphql.generator.mapping.*;
 import io.leangen.graphql.generator.mapping.strategy.AbstractInputHandler;
 import io.leangen.graphql.generator.mapping.strategy.InterfaceMappingStrategy;
 import io.leangen.graphql.metadata.messages.MessageBundle;
@@ -36,6 +36,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -44,18 +45,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.StandardMethodMetadata;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 @Configuration
 @ConditionalOnClass(GraphQLSchemaGenerator.class)
@@ -111,11 +102,21 @@ public class SpqrAutoConfiguration {
     private ExtensionProvider<GeneratorConfiguration, Module> moduleExtensionProvider;
 
     @Autowired(required = false)
-    private Internal<Module> reactorModule;
+    private List<Internal<Module>> modules;
 
     @Autowired
     public SpqrAutoConfiguration(ConfigurableApplicationContext context) {
         this.context = context;
+    }
+
+    @Bean
+    @ConditionalOnProperty("graphql.spqr.multipartUpload.enabled")
+    public Internal<Module> uploadModule() {
+        FileUploadHandler uploadAdapter = new FileUploadHandler();
+        return new Internal<>(context -> context.getSchemaGenerator()
+                .withArgumentInjectors(uploadAdapter)
+                .withTypeMappers(uploadAdapter)
+        );
     }
 
     @Bean
@@ -161,8 +162,12 @@ public class SpqrAutoConfiguration {
 
         // Modules should be registered first, so that extension providers have a chance to override what they need
         // Built-in modules must go before the user-provided ones for similar reasons
-        if (reactorModule != null) {
-            schemaGenerator.withModules(reactorModule.get());
+        if (!CollectionUtils.isEmpty(modules)) {
+            schemaGenerator.withModules(modules
+                    .stream()
+                    .map(Internal::get)
+                    .toArray(Module[]::new)
+            );
         }
 
         if (moduleExtensionProvider != null) {

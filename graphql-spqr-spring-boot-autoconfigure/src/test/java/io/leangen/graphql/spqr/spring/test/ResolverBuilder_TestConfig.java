@@ -1,7 +1,11 @@
 package io.leangen.graphql.spqr.spring.test;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import io.leangen.graphql.ExtensionProvider;
 import io.leangen.graphql.GeneratorConfiguration;
@@ -45,13 +49,34 @@ public class ResolverBuilder_TestConfig {
     @GraphQLApi
     public static class AnnotatedOperationSourceBean {
         @GraphQLQuery(name = "greetingFromAnnotatedSource_wiredAsComponent")
-        public String getGreeting(){
+        public String getGreeting() {
             return "Hello world !";
         }
 
         @GraphQLQuery(name = "echo")
         public String echo(@GraphQLArgument(name = "content") String content) {
             return content;
+        }
+
+        @GraphQLQuery
+        public List<String> upload(@GraphQLArgument(name = "file1") MultipartFile file1, @GraphQLArgument(name = "file2") MultipartFile file2) throws IOException {
+            return Arrays.asList(
+                    new Scanner(file1.getInputStream(), "UTF-8").useDelimiter("\\A").next(),
+                    new Scanner(file2.getInputStream(), "UTF-8").useDelimiter("\\A").next()
+            );
+        }
+
+        @GraphQLQuery
+        public List<String> uploadFiles(@GraphQLArgument(name = "files") List<MultipartFile> files) {
+            return files.stream()
+                    .map(file -> {
+                        try {
+                            return new Scanner(file.getInputStream(), "UTF-8").useDelimiter("\\A").next();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toList());
         }
     }
 

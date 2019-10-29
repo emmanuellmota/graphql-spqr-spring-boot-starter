@@ -9,10 +9,7 @@ import graphql.schema.GraphQLTypeVisitor;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.leangen.geantyref.GenericTypeReflector;
-import io.leangen.graphql.ExtendedGeneratorConfiguration;
-import io.leangen.graphql.ExtensionProvider;
-import io.leangen.graphql.GeneratorConfiguration;
-import io.leangen.graphql.GraphQLSchemaGenerator;
+import io.leangen.graphql.*;
 import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.execution.GlobalEnvironment;
 import io.leangen.graphql.execution.ResolutionEnvironment;
@@ -343,13 +340,13 @@ public class GlobalConfig_SpqrAutoConfigurationTest {
 
         Assert.assertNotNull(moduleExtensionProviders);
         Assert.assertFalse(moduleExtensionProviders.isEmpty());
-        Assert.assertEquals(1, moduleExtensionProviders.size());
+        Assert.assertEquals(2, moduleExtensionProviders.size());
 
-        ExtensionProvider<GeneratorConfiguration, Module> moduleExtensionProvider = moduleExtensionProviders.get(0);
+        ExtensionProvider<GeneratorConfiguration, Module> moduleExtensionProvider = moduleExtensionProviders.get(1);
 
         Assert.assertNotNull(moduleExtensionProvider);
 
-        List<Module> modules = moduleExtensionProvider.getExtensions(null, null);
+        List<Module> modules = moduleExtensionProvider.getExtensions(null, new ExtensionList<>(new ArrayList<>()));
 
         Assert.assertNotNull(modules);
         Assert.assertEquals(1, modules.size());

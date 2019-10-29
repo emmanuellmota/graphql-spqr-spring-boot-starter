@@ -18,8 +18,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -153,11 +152,52 @@ public class GraphQLControllerTest {
     @Test
     public void defaultControllerTest_POST_formUrlEncoded_overridingQueryParams() throws Exception {
         mockMvc.perform(
-                post("/"+apiContext)
-                        .param("query","{greetingFromBeanSource_wiredAsComponent_byAnnotation}")
+                post("/" + apiContext)
+                        .param("query", "{greetingFromBeanSource_wiredAsComponent_byAnnotation}")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .content("query="+ URLEncoder.encode("{INVALID_QUERY}", StandardCharsets.UTF_8.toString())))
+                        .content("query=" + URLEncoder.encode("{INVALID_QUERY}", StandardCharsets.UTF_8.toString())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Hello world")));
+    }
+
+    @Test
+    public void uploadFile() throws Exception {
+        mockMvc.perform(
+                multipart("/" + apiContext)
+                        .file("1", "content1".getBytes())
+                        .file("2", "content2".getBytes())
+                        .param("operations", "{\n" +
+                                "  \"operationName\": \"Upload\",\n" +
+                                "  \"variables\": {\n" +
+                                "    \"file1\": null,\n" +
+                                "    \"file2\": null\n" +
+                                "  },\n" +
+                                "  \"query\": \"query Upload($file1: FileUpload, $file2: FileUpload) {\\n  upload(file1: $file1, file2: $file2) }\\n\"\n" +
+                                "}")
+                        .param("map", "{  \"1\": [\"variables.file1\"],  \"2\": [\"variables.file2\"] }")
+
+        )
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"data\":{\"upload\":[\"content1\",\"content2\"]}}", true));
+    }
+
+    @Test
+    public void uploadMultipleFile() throws Exception {
+        mockMvc.perform(
+                multipart("/" + apiContext)
+                        .file("1", "content1".getBytes())
+                        .file("2", "content2".getBytes())
+                        .param("operations", "{\n" +
+                                "  \"operationName\": \"UploadFiles\",\n" +
+                                "  \"variables\": {\n" +
+                                "    \"files\": [null]\n" +
+                                "  },\n" +
+                                "  \"query\": \"query UploadFiles($files: [FileUpload]) {\\n  uploadFiles(files: $files) }\\n\"\n" +
+                                "}")
+                        .param("map", "{  \"1\": [\"variables.files.0\"],  \"2\": [\"variables.files.1\"] }")
+
+        )
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"data\":{\"uploadFiles\":[\"content1\",\"content2\"]}}", true));
     }
 }

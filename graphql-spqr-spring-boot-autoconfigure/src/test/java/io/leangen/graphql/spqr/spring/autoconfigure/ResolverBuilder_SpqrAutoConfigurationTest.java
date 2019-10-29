@@ -1,8 +1,16 @@
 package io.leangen.graphql.spqr.spring.autoconfigure;
 
-import graphql.schema.GraphQLSchema;
+import java.util.Comparator;
+import java.util.Scanner;
+
+import graphql.schema.*;
+import graphql.schema.diff.DiffSet;
+import graphql.schema.diff.SchemaDiff;
+import graphql.schema.diff.reporting.CapturingReporter;
+import graphql.schema.idl.*;
 import io.leangen.graphql.GraphQLSchemaGenerator;
 import io.leangen.graphql.spqr.spring.test.ResolverBuilder_TestConfig;
+import org.assertj.core.api.Assertions;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,42 +44,54 @@ public class ResolverBuilder_SpqrAutoConfigurationTest {
         Assert.assertNotNull(schemaGenerator);
     }
 
+
     @Test
     public void schemaConfigTest() {
-        Assert.assertNotNull(schema);
-        //Operations sources wired in different ways
-        // -using the default resolver builder
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromAnnotatedSource_wiredAsComponent"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromAnnotatedSource_wiredAsBean"));
+        printSchema();
 
-        //Operations source wired as bean
-        // -using additional global resolver builder
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byCustomGlobalResolverBuilder"));
-        // -using default resolver builders
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byMethodName"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byAnnotation"));
-        // -using custom resolver builders
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byStringQualifiedCustomResolverBuilder_wiredAsBean"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byStringQualifiedCustomResolverBuilder_wiredAsComponent"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byAnnotationQualifiedCustomResolverBuilder_wiredAsBean"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byAnnotationQualifiedCustomResolverBuilder_wiredAsComponent"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byNamedCustomResolverBuilder_wiredAsBean"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsBean_byNamedCustomResolverBuilder_wiredAsComponent"));
+        String expectedSchemaString = new Scanner(ResolverBuilder_SpqrAutoConfigurationTest.class
+                .getResourceAsStream("/schema.graphql"), "UTF-8")
+                .useDelimiter("\\A")
+                .next();
 
-        //Operations source wired as component
-        // -using additional global resolver builder
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byCustomGlobalResolverBuilder"));
-        // -using default resolver builders
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byMethodName"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byAnnotation"));
-        // -using custom resolver builders
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byStringQualifiedCustomResolverBuilder_wiredAsBean"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byStringQualifiedCustomResolverBuilder_wiredAsComponent"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byAnnotationQualifiedCustomResolverBuilder_wiredAsBean"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byAnnotationQualifiedCustomResolverBuilder_wiredAsComponent"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byNamedCustomResolverBuilder_wiredAsBean"));
-        Assert.assertNotNull(schema.getQueryType().getFieldDefinition("greetingFromBeanSource_wiredAsComponent_byNamedCustomResolverBuilder_wiredAsComponent"));
+        SchemaParser schemaParser = new SchemaParser();
+        TypeDefinitionRegistry reg = schemaParser.parse(expectedSchemaString);
+        SchemaGenerator gen = new SchemaGenerator();
+
+        RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring()
+                .scalar(FileUploadHandler.FILE_UPLOAD_SCALAR);
+
+        GraphQLSchema expected = gen.makeExecutableSchema(reg, runtimeWiring.build());
+
+        diff(expected, schema);
+        diff(schema, expected);
     }
 
+    private void printSchema() {
+        SchemaPrinter schemaPrinter = new SchemaPrinter(SchemaPrinter.Options.defaultOptions()
+                .includeDirectives(false)
+                .includeScalarTypes(true)
+                .includeExtendedScalarTypes(true)
+                .includeSchemaDefintion(true)
+                .includeIntrospectionTypes(false)
+                .setComparators(DefaultSchemaPrinterComparatorRegistry.newComparators()
+                        .addComparator(env -> {
+                            env.parentType(GraphQLObjectType.class);
+                            env.elementType(GraphQLFieldDefinition.class);
+                            return env;
+                        }, GraphQLFieldDefinition.class, Comparator.comparing(GraphQLFieldDefinition::getName))
+                        .build()));
+        System.out.println("Augmented Schema:");
+        System.out.println(schemaPrinter.print(schema));
+    }
+
+    private void diff(GraphQLSchema augmentedSchema, GraphQLSchema expected) {
+        DiffSet diffSet = DiffSet.diffSet(augmentedSchema, expected);
+        CapturingReporter capture = new CapturingReporter();
+        new SchemaDiff(SchemaDiff.Options.defaultOptions())
+                .diffSchema(diffSet, capture);
+        Assertions.assertThat(capture.getDangers()).isEmpty();
+        Assertions.assertThat(capture.getBreakages()).isEmpty();
+    }
 }
 
