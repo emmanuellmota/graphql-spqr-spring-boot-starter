@@ -110,7 +110,7 @@ public class SpqrAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty("graphql.spqr.multipartUpload.enabled")
+    @ConditionalOnProperty(value = "graphql.spqr.multipart-upload.enabled", havingValue = "true")
     public Internal<Module> uploadModule() {
         FileUploadHandler uploadAdapter = new FileUploadHandler();
         return new Internal<>(context -> context.getSchemaGenerator()
