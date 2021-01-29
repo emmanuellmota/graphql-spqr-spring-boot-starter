@@ -7,6 +7,10 @@ Spring Boot 2 starter powered by GraphQL SPQR
 [![Build Status](https://travis-ci.org/leangen/graphql-spqr-spring-boot-starter.svg?branch=master)](https://travis-ci.org/leangen/graphql-spqr-spring-boot-starter)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg?maxAge=2592000)](https://raw.githubusercontent.com/leangen/graphql-spqr-spring-boot-starter/master/LICENSE)
 
+## NOTICE
+This project is on a temporary hiatus. I hope to resume it shortly. In doing so, I must first assess the current state. I have removed the access to issues for the time being to get a chance to clean them up and prevent people from abusing the issues to ask for new releases. I'll restore the access as soon as I can. Sorry for the inconvenience, and thanks for your patience.
+
+
 ## A friendly warning
 
 This project is still in early development and, while fairly well tested, should be considered as ALPHA stage as long as the version is 0.0.X.
@@ -44,7 +48,7 @@ This annotation can be used in combination with `@Component/@Service/@Repository
         ...
     }
 ```
-or 
+or
 ```java
     @Bean
     @GraphQLApi
@@ -67,7 +71,7 @@ It is also possible to implement custom resolver builders by implementing the `R
 Resolver builders can be declared both globally and on the operation source level. If not sticking to the defaults, it is generally safer to explicitly customize on the operation source level, unless the rules are absolutely uniform across all operation sources.
 Customizing on both levels simultaneously will work but could prove tricky to control as your API grows.
 
-At the moment SPQR's (v0.10.0) default resolver builder is `AnnotatedResolverBuilder`. This starter follows that convention and will continue to do so if at some point SPQR's default changes.
+At the moment SPQR's (v0.10.1) default resolver builder is `AnnotatedResolverBuilder`. This starter follows that convention and will continue to do so if at some point SPQR's default changes.
 
 ### Customizing resolver builders globally
 
@@ -124,7 +128,7 @@ As an example, we can expose the `greeting` query by using:
     @WithResolverBuilder(BeanResolverBuilder.class) //exposes all getters
     private class MyOperationSource {
         public String getGreeting(){
-            return "Hello world !"; 
+            return "Hello world !";
         }
     }
 ```
@@ -137,8 +141,8 @@ or:
     //No explicit resolver builders declared, so AnnotatedResolverBuilder is used
     public MyOperationSource() {
         @GraphQLQuery(name = "greeting")
-        public String getGreeting(){
-            return "Hello world !"; 
+        public String getGreeting() {
+            return "Hello world !";
         }
     }
 ``` 
@@ -153,7 +157,7 @@ It is also entirely possible to use more than one resolver builder on the same o
     private class MyOperationSource {
         //Exposed by BeanResolverBuilder because it's a getter
         public String getGreeting(){
-            return "Hello world !"; 
+            return "Hello world !";
         }
 
         //Exposed by AnnotatedResolverBuilder because it's annotated
@@ -194,6 +198,30 @@ To do this SPQR uses `TypeInfoGenerator` on a global level. When using this star
 ```
 
 ## Advanced config
+
+### Available Properties
+
+| Property | Default Value |
+| ------ | ------ |
+| graphql.spqr.base-packages | n/a |
+| graphql.spqr.abstract-input-type-resolution | false |
+| graphql.spqr.relay.enabled | false |
+| graphql.spqr.relay.mutation-wrapper | n/a |
+| graphql.spqr.relay.mutation-wrapper-description | n/a |
+| graphql.spqr.relay.connection-check-relaxed | false |
+| graphql.spqr.relay.spring-data-compatible | false |
+| graphql.spqr.http.enabled | true |
+| graphql.spqr.http.endpoint | /graphql |
+| graphql.spqr.ws.enabled | true |
+| graphql.spqr.ws.endpoint | n/a |
+| graphql.spqr.ws.allowedOrigins | * |
+| graphql.spqr.ws.keepAlive.enabled | false |
+| graphql.spqr.ws.keepAlive.intervalMillis | 10000 |
+| graphql.spqr.gui.enabled | true |
+| graphql.spqr.gui.endpoint | /gui |
+| graphql.spqr.gui.targetEndpoint | n/a |
+| graphql.spqr.gui.targetWsEndpoint | n/a |
+| graphql.spqr.gui.pageTitle | GraphQL Playground |
 
 ### Customize mapping of GraphQL values to Java values
 
