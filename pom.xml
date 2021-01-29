@@ -29,6 +29,12 @@
             <id>bintray-leangen</id>
             <url>https://api.bintray.com/maven/leangen/maven/graphql-spqr-spring-boot-starter/</url>
         </repository>
+        
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Emmanuel Mota Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/emmanuellmota/graphql-spqr-spring-boot-starter</url>
+        </snapshotRepository>
     </distributionManagement>
     <issueManagement>
         <system>GitHub Issue Tracking</system>
